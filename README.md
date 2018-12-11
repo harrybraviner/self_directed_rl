@@ -27,3 +27,10 @@ Note the two differences here:
 Claims:
 * *Policy gradients can learn stochastic policies* - Is this really true? Why will the policy not still learn to just take the action that has the greatest expected discounted reward?
    Actually, the perceptual aliasing point here is good. Maybe the optimum policy involves learning to do *different things* from the *same state* at different points in the *same episode*.
+
+Exercises:
+* Write an environment which has a single state, and two actions, *{ a1, a2 }*.
+  The reward should be 0 except when action *a2* is taken immediately after action *a1*.
+  What is the optimum policy? (I think this should be derivable analytically.)
+  What happens if you try to fit a Q-table on this problem? What's the performance like? What's the final values in the Q-table?
+
