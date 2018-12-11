@@ -10,16 +10,16 @@ The Q-table is learning the expected discounted reward of taking a particular ac
 
 See [https://medium.freecodecamp.org/an-introduction-to-policy-gradients-with-cartpole-and-doom-495b5ef2207f](the freeCodeCamp post) about policy gradients.
 
-In Q-learning we estimated the expected future reward of taking action *a* form state *s*: *E[ R(a, s) ] = Q(a, s)*.
+In Q-learning we estimated the expected future reward of taking action *a* form state *s*: *E[R(a,s)] = Q(a,s)*.
 This is the discounted reward, assuming that we take the optimal step from all future states.
 To explore we needed to add some ad-hoc stochasticity.
 
 In policy gradients this value function, *Q*, is replaced by a policy *π*.
-We take action *a* from state *s* with probability *P(a | s) = π(a | s; θ)*.
+We take action *a* from state *s* with probability *P(a|s) = π(a|s;θ)*.
 *θ* are the parameters to the policy.
 
-How do we choose *θ*? In Q-learning the equivalent problem was to choose parameters such that *Q* approximated *E[ R(a, s) ]* well.
-Here we'll define a score function *J(θ) = E[ R ; π(θ)]*, and seek to maximize this.
+How do we choose *θ*? In Q-learning the equivalent problem was to choose parameters such that *Q* approximated *E[R(a,s)]* well.
+Here we'll define a score function *J(θ) = E[R;π(θ)]*, and seek to maximize this.
 Note the two differences here:
 * We're learning to pick actions to maximise reward, rather tan estimating expected reward and using a (greedy) heuristic to select an action.
 * The expectation is now the expectation *under the policy we have learnt*, as opposed to the expectation based on our learnt value function.
