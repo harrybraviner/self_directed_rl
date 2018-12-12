@@ -10,6 +10,8 @@ The Q-table is learning the expected discounted reward of taking a particular ac
 
 See [https://medium.freecodecamp.org/an-introduction-to-policy-gradients-with-cartpole-and-doom-495b5ef2207f](the freeCodeCamp post) about policy gradients.
 
+Maybe also look at [https://lilianweng.github.io/lil-log/2018/04/08/policy-gradient-algorithms.html](this). Looks like it may assume a little more intelligence on the part of the reader.
+
 In Q-learning we estimated the expected future reward of taking action *a* form state *s*: *E[R(a,s)] = Q(a,s)*.
 This is the discounted reward, assuming that we take the optimal step from all future states.
 To explore we needed to add some ad-hoc stochasticity.
