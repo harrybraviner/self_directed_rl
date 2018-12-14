@@ -14,7 +14,28 @@ class WorldModel:
 
         hidden_state = slim.fully_connected(tf.concat([self.state_input, self.action_input_onehot], axis=1), hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
 
-        self.state_output_dist = slim.fully_connected(hidden_state, state_space_size, biases_initializer=None, activation_fn=tf.nn.softmax)
+        self.state_output = slim.fully_connected(hidden_state, state_space_size, biases_initializer=None, activation_fn=tf.nn.softmax)
+
+        self.state_output_ground_truth = tf.placeholder(shape=[None, state_space_size], dtype=tf.float32)
+
+        self.loss = tf.losses.mean_squared_error(self.state_output_ground_truth, self.state_output)
+
+        self.learning_rate = tf.placeholder(shape=[], dtype=tf.float32)
+        optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.train_step = optimizer.minimize(self.loss)
+
+    def train_on_episodes(self, state_input, action_input, state_output, learning_rate=1e-2, sess=None):
+        feed_dict={
+            self.state_input: state_input,
+            self.action_input: action_input,
+            self.state_output_ground_truth: state_output,
+            self.learning_rate: learning_rate
+        }
+
+        # FIXME - how should I get the session in here?
+        # Should this function actually return a step?
+        sess.run(self.train_step, feed_dict=feed_dict)
+
 
 if __name__ == "__main__":
     """ Self-tests for crashes. """
@@ -31,5 +52,8 @@ if __name__ == "__main__":
             world_model.action_input: np.array([1])
         }
 
-        output = sess.run(world_model.state_output_dist, feed_dict=feed_dict)
+        output = sess.run(world_model.state_output, feed_dict=feed_dict)
         print(output)
+
+        world_model.train_on_episodes(state_input=np.array([[0.1, -0.4, 1.3, -0.1]]), action_input=np.array([1]),
+                                      state_output=np.array([[0.4, -0.2, 1.5, 0.0]]), sess=sess)
