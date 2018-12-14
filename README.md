@@ -36,3 +36,10 @@ Exercises:
   What is the optimum policy? (I think this should be derivable analytically.)
   What happens if you try to fit a Q-table on this problem? What's the performance like? What's the final values in the Q-table?
 
+# Model-based policy agents
+
+For extra sample efficiency we can train a *model* of the environment, and then train the *policy* on that *model*.
+
+I think this also helps in the circumstance where we can't actually interact with the real environment. Though it sounds like it would be prone to failure if there are actions that are rarely taken from a particular state, since we would not be able to fit that transition probability very well.
+
+Example is at ./model_based_cart_pole/.
