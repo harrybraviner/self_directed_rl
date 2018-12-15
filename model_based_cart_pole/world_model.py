@@ -13,8 +13,9 @@ class WorldModel:
         self.action_input_onehot = tf.one_hot(self.action_input, action_space_size, dtype=tf.float32)
 
         hidden_state = slim.fully_connected(tf.concat([self.state_input, self.action_input_onehot], axis=1), hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
+        hidden_state_2 = slim.fully_connected(hidden_state, hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
 
-        self.state_output = slim.fully_connected(hidden_state, state_space_size, biases_initializer=None, activation_fn=tf.nn.softmax)
+        self.state_output = slim.fully_connected(hidden_state_2, state_space_size, biases_initializer=None, activation_fn=None)
 
         self.state_output_ground_truth = tf.placeholder(shape=[None, state_space_size], dtype=tf.float32)
 
@@ -34,7 +35,8 @@ class WorldModel:
 
         # FIXME - how should I get the session in here?
         # Should this function actually return a step?
-        sess.run(self.train_step, feed_dict=feed_dict)
+        _, training_loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
+        return training_loss
 
 
 if __name__ == "__main__":
