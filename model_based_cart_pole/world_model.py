@@ -73,7 +73,9 @@ if __name__ == "__main__":
         s = env.reset()
         done = False
 
+        length = 0
         while (not done) and (max_length is None or length < max_length):
+            length += 1
             a = policy(s)
             s1, reward, done, _ = env.step(a)
 
