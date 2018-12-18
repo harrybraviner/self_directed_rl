@@ -122,26 +122,11 @@ class Policy:
 
 if __name__ == "__main__":
     import gym
+    from ewma import EWMA
 
     total_episodes = 5000
     episodes_per_update = 5
     learning_rate = 1e-2
-
-    class EWMA:
-        def __init__(self, gamma):
-            self._value = None
-            self.gamma = gamma
-
-        def update(self, x):
-
-            if self._value is None:
-                self._value = x
-            else:
-                self._value *= self.gamma
-                self._value += (1.0 - self.gamma)* x
-
-        def value(self):
-            return self._value
 
     with tf.Session() as sess:
         policy = Policy(sess, 4, 2, 8)
