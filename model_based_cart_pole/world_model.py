@@ -3,6 +3,23 @@
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
+class EnvAnalogue:
+
+    def __init__(self, sess, state_stepper, state_initializer):
+        self.state_stepper = state_stepper
+        self.state_initializer = state_initializer
+        self.sess = sess
+        self.state = None
+
+    def reset(self):
+        self.state = self.state_initializer()
+        return self.state
+
+    def step(self, action):
+        new_state = self.state_stepper(self.sess, self.state, action)
+        self.state = new_state
+        return new_state
+
 class WorldModel:
 
     def __init__(self, state_space_size, action_space_size, hidden_size):
@@ -24,6 +41,13 @@ class WorldModel:
         self.learning_rate = tf.placeholder(shape=[], dtype=tf.float32)
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.train_step = optimizer.minimize(self.loss)
+
+    def env_analogue(self, sess, state_initializer):
+        def state_stepper(sess, state, action):
+            feed_dict = {self.state_input: [state], self.action_input: [action]}
+            return sess.run(self.state_output, feed_dict=feed_dict)
+
+        return EnvAnalogue(sess, state_stepper, state_initializer)
 
     def train_on_episodes(self, state_input, action_input, state_output, learning_rate, sess):
         feed_dict={
@@ -73,9 +97,7 @@ if __name__ == "__main__":
         s = env.reset()
         done = False
 
-        length = 0
         while (not done) and (max_length is None or length < max_length):
-            length += 1
             a = policy(s)
             s1, reward, done, _ = env.step(a)
 
