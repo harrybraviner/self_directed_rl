@@ -25,7 +25,7 @@ class WorldModel:
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.train_step = optimizer.minimize(self.loss)
 
-    def train_on_episodes(self, state_input, action_input, state_output, learning_rate=1e-2, sess=None):
+    def train_on_episodes(self, state_input, action_input, state_output, learning_rate, sess):
         feed_dict={
             self.state_input: state_input,
             self.action_input: action_input,
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         print(output)
 
         world_model.train_on_episodes(state_input=np.array([[0.1, -0.4, 1.3, -0.1]]), action_input=np.array([1]),
-                                      state_output=np.array([[0.4, -0.2, 1.5, 0.0]]), sess=sess)
+                                      state_output=np.array([[0.4, -0.2, 1.5, 0.0]]), learning_rate=1e-2, sess=sess)
     print("Passed a single training step without crashing.\n")
 
     # Show that we can train the model
