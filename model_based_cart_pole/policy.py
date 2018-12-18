@@ -1,14 +1,18 @@
 #! /usr/bin/python3
 
 import re
+import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 class Policy:
     
-    def __init__(self, state_space_size, action_space_size, hidden_size):
+    def __init__(self, sess, state_space_size, action_space_size, hidden_size):
     
         with tf.name_scope(name=None, default_name="policy_net") as scope:
+            self.rng = np.random.RandomState(12345) # Needed to realise episodes
+            self.sess = sess # Referenced later
+
             self.state_input = tf.placeholder(shape=[None, state_space_size], dtype=tf.float32)
             
             W1 = tf.Variable(tf.truncated_normal(shape=[state_space_size, hidden_size], mean=0.0, stddev=0.01, dtype=tf.float32), name="weight_1")
@@ -32,7 +36,9 @@ class Policy:
             # Make a record of the trainable variable associated to the policy (there will be others in the model)
             self.trainable_variables = tf.trainable_variables(scope=scope)
 
-            # We'll accumulate gradients for several episodes, and use these placeholders to pass them to the optimizer
+            # We'll accumulate gradients for several episodes here...
+            self.grad_buffers = [np.zeros(shape=grad.shape, dtype=np.float32) for grad in self.trainable_variables]
+            # ...and use these placeholders to pass them to the optimizer
             self.gradient_holders = []
             # Annoying procedure to get "_grad_holder" added onto the end of the variable names
             name_pattern = re.compile("([a-zA-Z0-9_]+)/([a-zA-Z0-9_]+):([0-9]+)")
@@ -48,12 +54,106 @@ class Policy:
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             self.update_using_gradients = optimizer.apply_gradients(zip(self.gradient_holders, self.trainable_variables))
 
-    def run_episode_and_accumulate_gradients(self, env, max_length=999):
-        raise NotImplementedError()
-            
+    @staticmethod
+    def discount_rewards(rewards, gamma):
+        discounted_rewards = np.zeros_like(rewards, dtype=np.float32)
+        for idx in range(len(rewards)-1, -1, -1):
+            discounted_rewards[idx] *= gamma
+            discounted_rewards[idx] += rewards[idx]
+        return discounted_rewards
+
+    def run_episode_and_accumulate_gradients(self, env, reward_gamma=0.99, max_steps=1000):
+        s = env.reset()
+        done = False
+
+        ep_history = []
+
+        step = 0
+        while (not done) and (max_steps is None or step < max_steps):
+            step += 1
+
+            # Run the policy to choose an action
+            feed_dict = { self.state_input: [s] }
+            action_dist = self.sess.run(self.action_output, feed_dict=feed_dict)
+            chosen_action = self.rng.choice(action_dist.shape[1], p=action_dist[0])
+
+            # Step the environment
+            s1, r, done, _ = env.step(chosen_action)
+            # Record in the episode history
+            ep_history.append([s, s1, r, chosen_action])
+            s = s1
+
+        ep_history = np.array(ep_history)
+
+        # Compute gradients
+        discounted_rewards = Policy.discount_rewards(ep_history[:, 2], reward_gamma)
+        feed_dict = {
+            self.state_input: np.stack(ep_history[:, 0], axis=0),
+            self.reward_holder: discounted_rewards,
+            self.action_holder: ep_history[:, 3],
+        }
+        gradients = self.sess.run(self.gradients, feed_dict=feed_dict)
+        # Add these gradients to the grad buffers
+        for grad_buffer, grad in zip(self.grad_buffers, gradients):
+            grad_buffer += grad
+
+        # Return some output that the user can decide how to collate
+        total_reward = np.sum(ep_history[:,2])
+
+        return total_reward
+
     def apply_accumulated_gradients(self, learning_rate):
-        raise NotImplementedError()
+
+        # Associate the placeholders to the accumulated gradient values
+        feed_dict = dict(zip(self.gradient_holders, self.grad_buffers))
+        feed_dict[self.learning_rate] = learning_rate
+        # Run the update step
+        self.sess.run(self.update_using_gradients, feed_dict=feed_dict)
+
+        # Clear the gradient buffers
+        for grad_buffer in self.grad_buffers:
+            grad_buffer *= 0.0
 
 if __name__ == "__main__":
+    import gym
 
-    policy = Policy(4, 2, 8)
+    total_episodes = 5000
+    episodes_per_update = 10
+    learning_rate = 1e-2
+
+    class EWMA:
+        def __init__(self, gamma):
+            self._value = None
+            self.gamma = gamma
+
+        def update(self, x):
+
+            if self._value is None:
+                self._value = x
+            else:
+                self._value *= self.gamma
+                self._value += (1.0 - self.gamma)* x
+
+        def value(self):
+            return self._value
+
+    with tf.Session() as sess:
+        policy = Policy(sess, 4, 2, 8)
+
+        sess.run(tf.global_variables_initializer())
+
+        env = gym.make("CartPole-v0")
+
+        reward_smoothed = EWMA(0.99)
+
+        for episode in range(total_episodes + 1):
+            reward = policy.run_episode_and_accumulate_gradients(env)
+
+            reward_smoothed.update(reward)
+
+            if episode > 0 and episode % episodes_per_update == 0:
+                policy.apply_accumulated_gradients(learning_rate)
+
+            if episode % 100 == 0:
+                print("Smoothed reward: {}".format(reward_smoothed.value()))
+
