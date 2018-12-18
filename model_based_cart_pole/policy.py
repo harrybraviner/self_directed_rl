@@ -19,7 +19,7 @@ class Policy:
             hidden_layer = tf.nn.relu(tf.matmul(self.state_input, W1))
 
             W2 = tf.Variable(tf.truncated_normal(shape=[hidden_size, action_space_size], mean=0.0, stddev=0.01, dtype=tf.float32), name="weight_2")
-            self.action_output =tf.nn.softmax(tf.matmul(hidden_layer, W2))
+            self.action_output = tf.nn.softmax(tf.matmul(hidden_layer, W2))
 
             # Discounted rewards are inserted here when computing gradients
             self.reward_holder = tf.placeholder(shape=[None], dtype=tf.float32)
@@ -57,9 +57,11 @@ class Policy:
     @staticmethod
     def discount_rewards(rewards, gamma):
         discounted_rewards = np.zeros_like(rewards, dtype=np.float32)
+        running_discount = 0.0
         for idx in range(len(rewards)-1, -1, -1):
-            discounted_rewards[idx] *= gamma
-            discounted_rewards[idx] += rewards[idx]
+            running_discount *= gamma
+            running_discount += rewards[idx]
+            discounted_rewards[idx] = running_discount
         return discounted_rewards
 
     def run_episode_and_accumulate_gradients(self, env, reward_gamma=0.99, max_steps=1000):
@@ -118,7 +120,7 @@ if __name__ == "__main__":
     import gym
 
     total_episodes = 5000
-    episodes_per_update = 10
+    episodes_per_update = 5
     learning_rate = 1e-2
 
     class EWMA:
