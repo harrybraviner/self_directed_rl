@@ -54,6 +54,12 @@ class Policy:
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             self.update_using_gradients = optimizer.apply_gradients(zip(self.gradient_holders, self.trainable_variables))
 
+    def apply(self, state):
+        feed_dict = { self.state_input: [state] }
+        action_dist = self.sess.run(self.action_output, feed_dict=feed_dict)
+        chosen_action = self.rng.choice(action_dist.shape[1], p=action_dist[0])
+        return chosen_action
+
     @staticmethod
     def discount_rewards(rewards, gamma):
         discounted_rewards = np.zeros_like(rewards, dtype=np.float32)
@@ -75,9 +81,7 @@ class Policy:
             step += 1
 
             # Run the policy to choose an action
-            feed_dict = { self.state_input: [s] }
-            action_dist = self.sess.run(self.action_output, feed_dict=feed_dict)
-            chosen_action = self.rng.choice(action_dist.shape[1], p=action_dist[0])
+            chosen_action = self.apply(s)
 
             # Step the environment
             s1, r, done, _ = env.step(chosen_action)
