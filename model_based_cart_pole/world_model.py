@@ -45,7 +45,7 @@ class WorldModel:
         self.state_loss = tf.losses.mean_squared_error(self.state_output_ground_truth, self.state_output)
         self.reward_loss = tf.losses.mean_squared_error(self.reward_ground_truth, self.reward_output)
         # FIXME - should REALLY make this a classification loss
-        self.done_loss = tf.losses.mean_squared_error(self.done_ground_truth, self.done_output)
+        self.done_loss = - tf.reduce_mean(self.done_ground_truth * tf.log(self.done_output) + (1.0 - self.done_ground_truth) * tf.log(1.0 - self.done_output))
 
         self.loss = self.state_loss + self.reward_loss + self.done_loss
 
