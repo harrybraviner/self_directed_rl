@@ -34,7 +34,7 @@ class WorldModel:
         hidden_state_2 = slim.fully_connected(hidden_state, hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
 
         self.state_output = slim.fully_connected(hidden_state_2, state_space_size, biases_initializer=None, activation_fn=None)
-        self.reward_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=None, activation_fn=None)
+        self.reward_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=None, activation_fn=tf.nn.relu)
         self.done_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=None, activation_fn=tf.nn.sigmoid)
 
 
