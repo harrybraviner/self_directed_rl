@@ -82,10 +82,8 @@ class Policy:
 
             # Run the policy to choose an action
             chosen_action = self.apply(s)
-            #print("apply done: {}".format(chosen_action))
 
             # Step the environment
-            #print(s.shape)
             s1, r, done, _ = env.step(chosen_action)
             # Record in the episode history
             ep_history.append([s, s1, r, chosen_action])
@@ -95,9 +93,6 @@ class Policy:
 
         # Compute gradients
         discounted_rewards = Policy.discount_rewards(ep_history[:, 2], reward_gamma)
-        #print(np.stack(ep_history[:, 0], axis=0).shape)
-        #print(discounted_rewards.shape)
-        #print(ep_history[:, 3].shape)
         feed_dict = {
             self.state_input: np.stack(ep_history[:, 0], axis=0),
             self.reward_holder: discounted_rewards,

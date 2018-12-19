@@ -110,7 +110,6 @@ def main():
             for b in range(model_training_batches_per_training):
                 states_in, states_out, actions, rewards, dones = make_episode_batch(env, policy.apply, model_training_episodes_per_batch)
                 for start_state in [x[0] for x in states_in]:
-                    #print(start_state)
                     start_state_buffer.put(start_state)
                 this_loss = world_model.train_on_episodes(np.concatenate(states_in, axis=0),
                                                           np.concatenate(actions, axis=0),
