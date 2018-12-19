@@ -35,7 +35,7 @@ def main():
         model_learning_rate = 1e-2
         model_hidden_size = 8
         model_training_episodes_per_batch = 5
-        model_training_batches_per_training = 10
+        model_training_batches_per_training = 100
 
         policy_learning_rate = 1e-2
         policy_hidden_size = 8
@@ -106,15 +106,19 @@ def main():
 
         for r in range(1, num_rounds+1):
             # Train the world model on episodes generated using the policy
-            states_in, states_out, actions, rewards, dones = make_episode_batch(env, policy.apply, model_training_episodes_per_batch)
-            for start_state in [x[0] for x in states_in]:
-                #print(start_state)
-                start_state_buffer.put(start_state)
-            model_loss = world_model.train_on_episodes(np.concatenate(states_in, axis=0),
-                                                       np.concatenate(actions, axis=0),
-                                                       np.concatenate(states_out, axis=0),
-                                                       np.concatenate(rewards, axis=0),
-                                                       np.concatenate(dones, axis=0), learning_rate=1e-2, sess=sess)
+            model_loss = [0.0, 0.0, 0.0, 0.0]
+            for b in range(model_training_batches_per_training):
+                states_in, states_out, actions, rewards, dones = make_episode_batch(env, policy.apply, model_training_episodes_per_batch)
+                for start_state in [x[0] for x in states_in]:
+                    #print(start_state)
+                    start_state_buffer.put(start_state)
+                this_loss = world_model.train_on_episodes(np.concatenate(states_in, axis=0),
+                                                          np.concatenate(actions, axis=0),
+                                                          np.concatenate(states_out, axis=0),
+                                                          np.concatenate(rewards, axis=0),
+                                                          np.concatenate(dones, axis=0), learning_rate=1e-2, sess=sess)
+                model_loss = [x + this_loss[i] for (i, x) in enumerate(model_loss)]
+            model_loss = [x / model_training_batches_per_training for x in model_loss]
             print("Model MSE: {}".format(model_loss))
 
             # Train the policy on the world model
