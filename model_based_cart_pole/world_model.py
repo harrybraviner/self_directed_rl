@@ -46,7 +46,7 @@ class WorldModel:
         # FIXME - should REALLY make this a classification loss
         self.done_loss = - tf.reduce_mean(self.done_ground_truth * tf.log(self.done_output) + (1.0 - self.done_ground_truth) * tf.log(1.0 - self.done_output))
 
-        self.loss = self.state_loss + self.reward_loss + self.done_loss
+        self.loss = self.state_loss + 10*self.reward_loss + 10*self.done_loss
 
         self.learning_rate = tf.placeholder(shape=[], dtype=tf.float32)
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
