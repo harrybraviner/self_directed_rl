@@ -41,6 +41,7 @@ def main():
         policy_hidden_size = 8
         policy_training_episodes_per_batch = 5
         policy_training_batches_per_training = 10
+        policy_evaluation_episodes = 20
 
         evaluation_episodes = 10
         num_rounds = 1000
@@ -122,7 +123,17 @@ def main():
                 for ep in range(policy_training_episodes_per_batch):
                     total_reward += policy.run_episode_and_accumulate_gradients(world_model.env_analogue(sess, state_initializer=state_initializer))
                 policy.apply_accumulated_gradients(policy_learning_rate)
-            print("Policy reward: {}".format(total_reward))
+            total_reward /= (policy_training_batches_per_training * policy_training_episodes_per_batch)
+            print("Policy reward in model: {}".format(total_reward))
+
+            # Evaluate the policy on the real environment
+            evaluation_reward = 0.0
+            for ep in range(policy_evaluation_episodes):
+                evaluation_reward += policy.run_episode_and_accumulate_gradients(env)
+            policy.clear_grad_buffers()
+            evaluation_reward /= policy_evaluation_episodes
+            print("Policy reward in real env: {}".format(evaluation_reward))
+
     
 
 if __name__ == "__main__":

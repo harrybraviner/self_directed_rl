@@ -70,7 +70,7 @@ class Policy:
             discounted_rewards[idx] = running_discount
         return discounted_rewards
 
-    def run_episode_and_accumulate_gradients(self, env, reward_gamma=0.99, max_steps=1000):
+    def run_episode_and_accumulate_gradients(self, env, reward_gamma=0.99, max_steps=300):
         s = env.reset()
         done = False
 
@@ -80,7 +80,6 @@ class Policy:
         while (not done) and (max_steps is None or step < max_steps):
             step += 1
 
-            #print(step)
             # Run the policy to choose an action
             chosen_action = self.apply(s)
             #print("apply done: {}".format(chosen_action))
@@ -122,9 +121,12 @@ class Policy:
         # Run the update step
         self.sess.run(self.update_using_gradients, feed_dict=feed_dict)
 
-        # Clear the gradient buffers
+        self.clear_grad_buffers()
+
+    def clear_grad_buffers(self):
         for grad_buffer in self.grad_buffers:
             grad_buffer *= 0.0
+
 
 if __name__ == "__main__":
     import gym
