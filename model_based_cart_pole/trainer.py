@@ -46,7 +46,7 @@ def main():
         policy_evaluation_episodes = 20
 
         evaluation_episodes = 10
-        num_rounds = 1000
+        num_rounds = 100
 
         env = gym.make('CartPole-v0')
         state_space_size = env.observation_space.shape[0]
