@@ -32,6 +32,8 @@ class CircularBuffer:
 def main():
 
     with tf.Session() as sess:
+        output_filename = "log.csv"
+
         model_learning_rate = 1e-2
         model_hidden_size = 8
         model_training_episodes_per_batch = 5
@@ -104,6 +106,9 @@ def main():
             return states_in, states_out, actions, rewards, dones
     
 
+        output_logfile = open(output_filename, 'wt')
+        output_logfile.write("epoch,model_state_mse,model_reward_mse,model_done_ce,policy_model_reward,policy_env_reward\n")
+
         for r in range(1, num_rounds+1):
             # Train the world model on episodes generated using the policy
             model_loss = [0.0, 0.0, 0.0, 0.0]
@@ -137,6 +142,10 @@ def main():
             evaluation_reward /= policy_evaluation_episodes
             print("Policy reward in real env: {}".format(evaluation_reward))
 
+            output_logfile.write("{},{},{},{},{},{}\n".format(r, model_loss[1], model_loss[2], model_loss[3], total_reward, evaluation_reward))
+            output_logfile.flush()
+
+        output_logfile.close()
     
 
 if __name__ == "__main__":
