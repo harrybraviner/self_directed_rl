@@ -13,7 +13,7 @@ class Policy:
             self.rng = np.random.RandomState(12345) # Needed to realise episodes
             self.sess = sess # Referenced later
 
-            self.state_input = tf.placeholder(shape=[None, state_space_size], dtype=tf.float32)
+            self.state_input = tf.placeholder(shape=[None, state_space_size], dtype=tf.float32, name="state_input")
             
             W1 = tf.Variable(tf.truncated_normal(shape=[state_space_size, hidden_size], mean=0.0, stddev=0.01, dtype=tf.float32), name="weight_1")
             hidden_layer = tf.nn.relu(tf.matmul(self.state_input, W1))
@@ -80,10 +80,13 @@ class Policy:
         while (not done) and (max_steps is None or step < max_steps):
             step += 1
 
+            #print(step)
             # Run the policy to choose an action
             chosen_action = self.apply(s)
+            #print("apply done: {}".format(chosen_action))
 
             # Step the environment
+            #print(s.shape)
             s1, r, done, _ = env.step(chosen_action)
             # Record in the episode history
             ep_history.append([s, s1, r, chosen_action])
@@ -93,6 +96,9 @@ class Policy:
 
         # Compute gradients
         discounted_rewards = Policy.discount_rewards(ep_history[:, 2], reward_gamma)
+        #print(np.stack(ep_history[:, 0], axis=0).shape)
+        #print(discounted_rewards.shape)
+        #print(ep_history[:, 3].shape)
         feed_dict = {
             self.state_input: np.stack(ep_history[:, 0], axis=0),
             self.reward_holder: discounted_rewards,

@@ -6,6 +6,28 @@ import gym
 from world_model import WorldModel
 from policy import Policy
 
+class CircularBuffer:
+    """ Used for holding initial states """
+
+    def __init__(self, max_len):
+        self.max_len = max_len
+        self.memory = []
+        self.insertion_idx = 0
+        self.get_idx = 0
+
+    def put(self, x):
+        if len(self.memory) < self.max_len:
+            self.memory.append(x)
+        else:
+            self.memory[self.insertion_idx] = x
+            self.insertion_idx += 1
+            self.insertion_idx %= self.max_len
+
+    def get(self):
+        outval = self.memory[self.get_idx]
+        self.get_idx += 1
+        self.get_idx %= len(self.memory)
+        return outval
 
 def main():
 
@@ -30,14 +52,26 @@ def main():
         world_model = WorldModel(state_space_size, action_space_size, model_hidden_size)
         policy = Policy(sess, state_space_size, action_space_size, policy_hidden_size)
 
+        start_state_buffer = CircularBuffer(20)
+        state_initializer = lambda: start_state_buffer.get()
+
         sess.run(tf.global_variables_initializer())
 
         def make_episode_batch(env, policy, batch_size, max_length=None):
+            """ Uses a black-box policy to generate an epsiode for training the model. """
             states_in = []
             states_out = []
             actions = []
+            rewards = []
+            dones = []
 
             for b in range(batch_size):
+                states_in_this_ep = []
+                states_out_this_ep = []
+                actions_this_ep = []
+                rewards_this_ep = []
+                dones_this_ep = []
+
                 s = env.reset()
                 done = False
                 length = 0
@@ -46,30 +80,49 @@ def main():
                     a = policy(s)
                     s1, reward, done, _ = env.step(a)
 
-                    states_in.append(s)
-                    states_out.append(s1)
-                    actions.append(a)
+                    states_in_this_ep.append(s)
+                    states_out_this_ep.append(s1)
+                    actions_this_ep.append(a)
+                    rewards_this_ep.append([reward])
+                    dones_this_ep.append([1.0 if done else 0.0])
 
                     s = s1
 
-            states_in = np.stack(states_in, axis=0)
-            states_out = np.stack(states_out, axis=0)
-            actions = np.stack(actions, axis=0)
+                states_in_this_ep = np.stack(states_in_this_ep, axis=0)
+                states_out_this_ep = np.stack(states_out_this_ep, axis=0)
+                actions_this_ep = np.stack(actions_this_ep, axis=0)
+                rewards_this_ep = np.stack(rewards_this_ep, axis=0)
+                dones_this_ep = np.stack(dones_this_ep, axis=0)
 
-            return states_in, states_out, actions
+                states_in.append(states_in_this_ep)
+                states_out.append(states_out_this_ep)
+                actions.append(actions_this_ep)
+                rewards.append(rewards_this_ep)
+                dones.append(dones_this_ep)
+
+            return states_in, states_out, actions, rewards, dones
     
 
         for r in range(1, num_rounds+1):
             # Train the world model on episodes generated using the policy
-            states_in, states_out, actions = make_episode_batch(env, policy.apply, model_training_episodes_per_batch)
-            model_loss = world_model.train_on_episodes(states_in, actions, states_out, learning_rate=1e-2, sess=sess)
+            states_in, states_out, actions, rewards, dones = make_episode_batch(env, policy.apply, model_training_episodes_per_batch)
+            for start_state in [x[0] for x in states_in]:
+                #print(start_state)
+                start_state_buffer.put(start_state)
+            model_loss = world_model.train_on_episodes(np.concatenate(states_in, axis=0),
+                                                       np.concatenate(actions, axis=0),
+                                                       np.concatenate(states_out, axis=0),
+                                                       np.concatenate(rewards, axis=0),
+                                                       np.concatenate(dones, axis=0), learning_rate=1e-2, sess=sess)
             print("Model MSE: {}".format(model_loss))
 
             # Train the policy on the world model
+            total_reward = 0.0
             for b in range(policy_training_batches_per_training):
                 for ep in range(policy_training_episodes_per_batch):
-                    policy.run_episode_and_accumulate_gradients(world_model.env_analogue)
+                    total_reward += policy.run_episode_and_accumulate_gradients(world_model.env_analogue(sess, state_initializer=state_initializer))
                 policy.apply_accumulated_gradients(policy_learning_rate)
+            print("Policy reward: {}".format(total_reward))
     
 
 if __name__ == "__main__":

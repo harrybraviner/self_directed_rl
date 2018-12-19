@@ -16,9 +16,10 @@ class EnvAnalogue:
         return self.state
 
     def step(self, action):
-        new_state = self.state_stepper(self.sess, self.state, action)
-        self.state = new_state
-        return new_state
+        #print(self.state.shape)
+        new_state, reward, done = self.state_stepper(self.sess, self.state, action)
+        self.state = new_state[0]
+        return new_state[0], reward[0][0], (done[0][0] > 0.5), {}
 
 class WorldModel:
 
@@ -55,7 +56,9 @@ class WorldModel:
     def env_analogue(self, sess, state_initializer):
         def state_stepper(sess, state, action):
             feed_dict = {self.state_input: [state], self.action_input: [action]}
-            return sess.run(self.state_output, feed_dict=feed_dict)
+            #print(state.shape)
+            #print(action.shape)
+            return sess.run([self.state_output, self.reward_output, self.done_output], feed_dict=feed_dict)
 
         return EnvAnalogue(sess, state_stepper, state_initializer)
 
@@ -92,7 +95,7 @@ if __name__ == "__main__":
         }
 
         output = sess.run([world_model.state_output, world_model.reward_output, world_model.done_output], feed_dict=feed_dict)
-        print(output)
+        #print(output)
 
         world_model.train_on_episodes(state_input=np.array([[0.1, -0.4, 1.3, -0.1]]), action_input=np.array([1]),
                                       state_output=np.array([[0.4, -0.2, 1.5, 0.0]]),
