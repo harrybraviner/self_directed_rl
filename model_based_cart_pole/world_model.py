@@ -22,15 +22,19 @@ class EnvAnalogue:
 
 class WorldModel:
 
-    def __init__(self, state_space_size, action_space_size, hidden_size):
+    def __init__(self, state_space_size, action_space_size, hidden_size, dropout_keep_prob=1.0):
 
         self.state_input = tf.placeholder(shape=[None, state_space_size], dtype=tf.float32)
         self.action_input = tf.placeholder(shape=[None], dtype=tf.int32)
 
         self.action_input_onehot = tf.one_hot(self.action_input, action_space_size, dtype=tf.float32)
+        self.dropout_keep_prob = tf.placeholder(shape=[], dtype=tf.float32)
+        self.training_keep_prob = dropout_keep_prob
 
-        hidden_state = slim.fully_connected(tf.concat([self.state_input, self.action_input_onehot], axis=1), hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
-        hidden_state_2 = slim.fully_connected(hidden_state, hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
+        hidden_state_pre = slim.fully_connected(tf.concat([self.state_input, self.action_input_onehot], axis=1), hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
+        hidden_state = tf.nn.dropout(hidden_state_pre, self.dropout_keep_prob)
+        hidden_state_2_pre = slim.fully_connected(hidden_state, hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
+        hidden_state_2 = tf.nn.dropout(hidden_state_2_pre, self.dropout_keep_prob)
 
         self.state_output = slim.fully_connected(hidden_state_2, state_space_size, biases_initializer=None, activation_fn=None)
         self.reward_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=None, activation_fn=tf.nn.relu)
@@ -54,7 +58,7 @@ class WorldModel:
 
     def env_analogue(self, sess, state_initializer):
         def state_stepper(sess, state, action):
-            feed_dict = {self.state_input: [state], self.action_input: [action]}
+            feed_dict = {self.state_input: [state], self.action_input: [action], self.dropout_keep_prob: 1.0}
             return sess.run([self.state_output, self.reward_output, self.done_output], feed_dict=feed_dict)
 
         return EnvAnalogue(sess, state_stepper, state_initializer)
@@ -66,7 +70,8 @@ class WorldModel:
             self.state_output_ground_truth: state_output,
             self.reward_ground_truth: reward,
             self.done_ground_truth: done,
-            self.learning_rate: learning_rate
+            self.learning_rate: learning_rate,
+            self.dropout_keep_prob: self.training_keep_prob,
         }
 
         # FIXME - how should I get the session in here?
@@ -88,7 +93,8 @@ if __name__ == "__main__":
 
         feed_dict = {
             world_model.state_input: np.array([[0.1, -0.4, 1.3, -0.1]]),
-            world_model.action_input: np.array([1])
+            world_model.action_input: np.array([1]),
+            world_model.dropout_keep_prob: 1.0
         }
 
         output = sess.run([world_model.state_output, world_model.reward_output, world_model.done_output], feed_dict=feed_dict)
