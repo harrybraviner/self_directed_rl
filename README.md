@@ -42,7 +42,7 @@ For extra sample efficiency we can train a *model* of the environment, and then 
 
 I think this also helps in the circumstance where we can't actually interact with the real environment. Though it sounds like it would be prone to failure if there are actions that are rarely taken from a particular state, since we would not be able to fit that transition probability very well.
 
-Example is at ./model_based_cart_pole/.
+Example is at [here](./model_based_cart_pole/).
 
 ## To Do
 
