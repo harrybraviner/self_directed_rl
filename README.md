@@ -42,7 +42,21 @@ For extra sample efficiency we can train a *model* of the environment, and then 
 
 I think this also helps in the circumstance where we can't actually interact with the real environment. Though it sounds like it would be prone to failure if there are actions that are rarely taken from a particular state, since we would not be able to fit that transition probability very well.
 
-Example is at [here](./model_based_cart_pole/).
+Example is [here](./model_based_cart_pole/).
+
+## Archtecture of this
+
+I split the example into three modules. `world_model` is responsible for the network that will predict states and rewards from actions, and `policy` is responsible for the Q-network that will estimate discounted future rewards from taking actions from states.
+`trainer` managed calling these alternately to train the model to reproduce the world, and the policy to maximise the reward.
+
+## Poor training performance
+
+Currently (commit `6600739`) this setup does not perform well.
+Looking at the performance of the policy on the real environment shows this:
+
+![Reward in real env vs epoch. Pretty flat.](./model_based_cart_pole/plots/reward_real_flat.png)
+
+Why could this be happening?
 
 ## To Do
 
