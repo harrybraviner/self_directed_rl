@@ -48,3 +48,15 @@ Example is at ./model_based_cart_pole/.
 
 * Why does the model network start returning NaN?
 * Why does modest dropout (keep prob = 0.8) in the model network harm performance?
+
+# Topic to add
+
+## Optimizations
+
+* ES
+* Proximal Policy Gradients
+* A3C (is this really an optimization or a parallelization strategy?)
+
+## Software packages
+
+* WALL-E: Parallelization of episode generation. https://arxiv.org/pdf/1901.06086v1.pdf and https://github.com/tianbingsz/WALL-E
