@@ -31,15 +31,17 @@ class WorldModel:
         self.dropout_keep_prob = tf.placeholder(shape=[], dtype=tf.float32)
         self.training_keep_prob = dropout_keep_prob
 
-        hidden_state_pre = slim.fully_connected(tf.concat([self.state_input, self.action_input_onehot], axis=1), hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
+        W1 = tf.Variable(tf.truncated_normal(shape=[self.state_input.shape[1].value + self.action_input_onehot.shape[1].value, hidden_size], dtype=tf.float32))
+        b1 = tf.Variable(tf.zeros(shape=[hidden_size]))
+        hidden_state_pre = tf.nn.relu(tf.matmul(tf.concat([self.state_input, self.action_input_onehot], axis=1), W1) + b1)
+        #hidden_state_pre = slim.fully_connected(tf.concat([self.state_input, self.action_input_onehot], axis=1), hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
         hidden_state = tf.nn.dropout(hidden_state_pre, self.dropout_keep_prob)
-        hidden_state_2_pre = slim.fully_connected(hidden_state, hidden_size, biases_initializer=None, activation_fn=tf.nn.relu)
+        hidden_state_2_pre = slim.fully_connected(hidden_state, hidden_size, biases_initializer=tf.zeros_initializer(), activation_fn=tf.nn.relu)
         hidden_state_2 = tf.nn.dropout(hidden_state_2_pre, self.dropout_keep_prob)
 
-        self.state_output = slim.fully_connected(hidden_state_2, state_space_size, biases_initializer=None, activation_fn=None)
-        self.reward_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=None, activation_fn=tf.nn.relu)
-        self.done_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=None, activation_fn=tf.nn.sigmoid)
-
+        self.state_output = slim.fully_connected(hidden_state_2, state_space_size, biases_initializer=tf.zeros_initializer(), activation_fn=None)
+        self.reward_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=tf.zeros_initializer(), activation_fn=tf.nn.relu)
+        self.done_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=tf.zeros_initializer(), activation_fn=tf.nn.sigmoid)
 
         self.state_output_ground_truth = tf.placeholder(shape=[None, state_space_size], dtype=tf.float32)
         self.reward_ground_truth = tf.placeholder(shape = [None, 1], dtype=tf.float32)
@@ -50,7 +52,8 @@ class WorldModel:
         # FIXME - should REALLY make this a classification loss
         self.done_loss = - tf.reduce_mean(self.done_ground_truth * tf.log(self.done_output) + (1.0 - self.done_ground_truth) * tf.log(1.0 - self.done_output))
 
-        self.loss = self.state_loss + 10*self.reward_loss + 10*self.done_loss
+        self.l2_loss = tf.nn.l2_loss(W1)
+        self.loss = self.state_loss + 10*self.reward_loss + 10*self.done_loss + 1e-5*self.l2_loss
 
         self.learning_rate = tf.placeholder(shape=[], dtype=tf.float32)
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
