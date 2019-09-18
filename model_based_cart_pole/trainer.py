@@ -35,7 +35,7 @@ def main():
         output_filename = "log.csv"
 
         model_learning_rate = 1e-2
-        model_hidden_size = 8
+        model_hidden_size = 256
         model_training_episodes_per_batch = 5
         model_training_batches_per_training = 100
 
@@ -120,7 +120,7 @@ def main():
                                                           np.concatenate(actions, axis=0),
                                                           np.concatenate(states_out, axis=0),
                                                           np.concatenate(rewards, axis=0),
-                                                          np.concatenate(dones, axis=0), learning_rate=1e-2, sess=sess)
+                                                          np.concatenate(dones, axis=0), learning_rate=1e-4, sess=sess)
                 model_loss = [x + this_loss[i] for (i, x) in enumerate(model_loss)]
             model_loss = [x / model_training_batches_per_training for x in model_loss]
             print("Model MSE: {}".format(model_loss))

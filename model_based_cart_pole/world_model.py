@@ -40,8 +40,9 @@ class WorldModel:
         hidden_state_2 = tf.nn.dropout(hidden_state_2_pre, self.dropout_keep_prob)
 
         self.state_output = slim.fully_connected(hidden_state_2, state_space_size, biases_initializer=tf.zeros_initializer(), activation_fn=None)
-        self.reward_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=tf.zeros_initializer(), activation_fn=tf.nn.relu)
-        self.done_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=tf.zeros_initializer(), activation_fn=tf.nn.sigmoid)
+        self.reward_output = slim.fully_connected(hidden_state_2, 1, biases_initializer=tf.zeros_initializer(), activation_fn=tf.nn.sigmoid)
+        self.done_logits = slim.fully_connected(hidden_state_2, 1, biases_initializer=tf.zeros_initializer(), activation_fn=None)
+        self.done_output = tf.nn.sigmoid(self.done_logits)
 
         self.state_output_ground_truth = tf.placeholder(shape=[None, state_space_size], dtype=tf.float32)
         self.reward_ground_truth = tf.placeholder(shape = [None, 1], dtype=tf.float32)
@@ -50,7 +51,9 @@ class WorldModel:
         self.state_loss = tf.losses.mean_squared_error(self.state_output_ground_truth, self.state_output)
         self.reward_loss = tf.losses.mean_squared_error(self.reward_ground_truth, self.reward_output)
         # FIXME - should REALLY make this a classification loss
-        self.done_loss = - tf.reduce_mean(self.done_ground_truth * tf.log(self.done_output) + (1.0 - self.done_ground_truth) * tf.log(1.0 - self.done_output))
+        # self.done_loss = - tf.reduce_mean(self.done_ground_truth * tf.log(self.done_output) + (1.0 - self.done_ground_truth) * tf.log(1.0 - self.done_output))
+        self.done_loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.done_ground_truth,
+                                                         logits=self.done_logits)
 
         self.l2_loss = tf.nn.l2_loss(W1)
         self.loss = self.state_loss + 10*self.reward_loss + 10*self.done_loss + 1e-5*self.l2_loss
@@ -81,6 +84,7 @@ class WorldModel:
         # Should this function actually return a step?
         _, training_loss, state_loss, reward_loss, done_loss =\
             sess.run([self.train_step, self.loss, self.state_loss, self.reward_loss, self.done_loss], feed_dict=feed_dict)
+        # print(sess.run([self.done_logits], feed_dict=feed_dict))
         return training_loss, state_loss, reward_loss, done_loss
 
 
