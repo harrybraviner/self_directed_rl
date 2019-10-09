@@ -1,3 +1,7 @@
+# Vanilla Policy Gradients
+
+There's a VPG implementation for solving `CartPole` (which has a discrete action space) in `vpg_cartpole`.
+The whole thing is self-contained in a notebook.
 
 # Simple RL - Q-Learning
 
